@@ -1,0 +1,7 @@
+.define foo hello, world
+.define bar goodbye
+.define baz
+1.foo; 2.bar
+.repeat h 5 .
+.repeat e 11 .
+h>e
