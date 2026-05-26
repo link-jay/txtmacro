@@ -1,10 +1,11 @@
-// TODO: .import
+// TODO: 抽象简化逻辑，详细报错位置
 #include <iostream>
 #include <string>
 #include <fstream>
 #include <vector>
 #include <unordered_map>
 #include <sstream>
+
 using namespace std;
 
 stringstream FILEBUF;
@@ -39,6 +40,7 @@ static string ENDM_OP   = ".endm";
 static string DEFINE_OP = ".define";
 static string REPEAT_OP = ".repeat";
 static string INCLUDE_OP = ".include";
+static string IMPORT_OP = ".import";
 
 class Macro {
 private:
@@ -142,6 +144,15 @@ public:
 	}
 	load_file(str_group[1]);
       }
+      else if (line.starts_with(IMPORT_OP)) {
+	vector<string> str_group = split_str(line);
+	if (str_group.size() < 2) {
+	  clear();
+          cerr << "Error: `.repeat` must follow the format: `.define name times word`" << endl;
+          exit(1);
+	}
+	load_macro(str_group[1]);
+      }
       else {
 	size_t start = 0;
         string _name = need_replace(line);
@@ -162,7 +173,98 @@ public:
     }
     if (!is_full) {
       clear();
-      cerr << "Error: `.macro` have not close." << endl;
+      cerr << "Error: " << path << "'s `.macro` have not close." << endl;
+      exit(1);
+    }
+  }
+
+  static void load_macro(string path) {
+    ifstream file(path);
+    if (!file) {
+      clear();
+      std::cerr << "Error: can not open " << path << "." << std::endl;
+      exit(1);
+    }
+    stringstream filebuf;
+    filebuf << file.rdbuf();
+    file.close();
+    bool is_full = true;
+    string tmp_buf = "";
+    std::string line;
+    while (getline(filebuf, line)) {
+      if (line.starts_with(MACRO_OP)) {
+        is_full = false;
+        if (split_str(line).size() != 2) {
+          cerr << "Error: `.macro` must set a name." << endl;
+          exit(1);
+        }
+        string name = split_str(line)[1];
+        new Macro(name);
+      }
+      else if (line.starts_with(ENDM_OP)) {
+        is_full = true;
+        macros.back()->set_content(tmp_buf);
+        tmp_buf.clear();
+      }
+      else if (!is_full) {
+        tmp_buf += line + "\n";
+      }
+      else if (line.starts_with(DEFINE_OP)) {
+        vector<string> str_group = split_str(line);
+        if (str_group.size() < 2) {
+	  clear();
+          cerr << "Error: `.define` must follow the format: `.define name [words]`. It accept a name at least." << endl;
+          exit(1);
+        }
+        string name = str_group[1];
+        Macro* new_macro = new Macro(name);
+	if (str_group.size() > 2) {
+	  tmp_buf = join_str(vector<string>(str_group.begin()+2, str_group.end()));
+	  new_macro->set_content(tmp_buf);
+	} else {
+	  new_macro->set_content(string(""));
+	}
+	tmp_buf.clear();
+      }
+      else if (line.starts_with(REPEAT_OP)) {
+        vector<string> str_group = split_str(line);
+        if (str_group.size() != 4) {
+	  clear();
+          cerr << "Error: `.repeat` must follow the format: `.define name times word`" << endl;
+          exit(1);
+        }
+        string name = str_group[1];
+        size_t counts = *str_group[2].c_str() - 40;
+        Macro* new_macro = new Macro(name);
+        for (size_t i = 0; i < counts; i++) {
+          tmp_buf += str_group[3];
+        }
+        new_macro->set_content(tmp_buf);
+	tmp_buf.clear();
+      }
+      else if (line.starts_with(INCLUDE_OP)) {
+	vector<string> str_group = split_str(line);
+	if (str_group.size() < 2) {
+	  clear();
+          cerr << "Error: `.repeat` must follow the format: `.define name times word`" << endl;
+          exit(1);
+	}
+	load_file(str_group[1]);
+      }
+      else if (line.starts_with(IMPORT_OP)) {
+	vector<string> str_group = split_str(line);
+	if (str_group.size() < 2) {
+	  clear();
+          cerr << "Error: `.repeat` must follow the format: `.define name times word`" << endl;
+          exit(1);
+	}
+	load_macro(str_group[1]);
+      }
+      else {}
+    }
+    if (!is_full) {
+      clear();
+      cerr << "Error: " << path << "'s `.macro` have not close." << endl;
       exit(1);
     }
   }
@@ -222,12 +324,16 @@ void command_line(int args, char* argv[]) {
 	ENDM_OP   = ".endm";
 	DEFINE_OP = ".define";
 	REPEAT_OP = ".repeat";
+	INCLUDE_OP = ".include";
+	IMPORT_OP = ".import";
       }
       else if (string(argv[i+1]) == "1") {
 	MACRO_OP  = "#macro";
         ENDM_OP   = "#endm";
         DEFINE_OP = "#define";
         REPEAT_OP = "#repeat";
+	INCLUDE_OP = "#include";
+	IMPORT_OP = "#import";
       }
       else {
 	cerr << "Error: unkownflag. `-f` only accept 0 or 1." << endl;
@@ -241,6 +347,8 @@ void command_line(int args, char* argv[]) {
       ENDM_OP   = prefix + "endm";
       DEFINE_OP = prefix + "define";
       REPEAT_OP = prefix + "repeat";
+      INCLUDE_OP = prefix + "include";
+      IMPORT_OP = prefix + "import";
       i++;
     }
     else if (argvar == "--help") {

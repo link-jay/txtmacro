@@ -32,4 +32,8 @@ The `.repeat` keyword repeats `word` `times` times.
 ```
 .include name
 ```
-The `.include` keyword will parse and paste the `name` file's content.  
+The `.include` keyword reads and inserts the content of the `name` file.  
+```
+.import name
+```
+The `.import` keyword reads the `name` file but does not insert content.  
