@@ -49,7 +49,14 @@ private:
   string name;
   string content;
 
-  // TODO: 增加重定义检验
+  static Macro* create(string name) {
+    if (macros_table.count(name) == 0) {
+      return new Macro(name);
+    } else {
+      return macros_table[name];
+    }
+  }
+
   void Register() {
     macros.push_back(this);
     macros_table[name] = this;
@@ -92,7 +99,7 @@ public:
           exit(1);
         }
         string name = split_str(line)[1];
-        new Macro(name);
+        create(name);
       }
       else if (line.starts_with(ENDM_OP)) {
         is_full = true;
@@ -105,70 +112,70 @@ public:
       else if (line.starts_with(DEFINE_OP)) {
         vector<string> str_group = split_str(line);
         if (str_group.size() < 2) {
-	  clear();
+          clear();
           cerr << "Error: `.define` must follow the format: `.define name [words]`. It accept a name at least." << endl;
           exit(1);
         }
         string name = str_group[1];
-        Macro* new_macro = new Macro(name);
-	if (str_group.size() > 2) {
-	  tmp_buf = join_str(vector<string>(str_group.begin()+2, str_group.end()));
-	  new_macro->set_content(tmp_buf);
-	} else {
-	  new_macro->set_content(string(""));
-	}
-	tmp_buf.clear();
+        Macro* new_macro = create(name);
+        if (str_group.size() > 2) {
+          tmp_buf = join_str(vector<string>(str_group.begin()+2, str_group.end()));
+          new_macro->set_content(tmp_buf);
+        } else {
+          new_macro->set_content(string(""));
+        }
+        tmp_buf.clear();
       }
       else if (line.starts_with(REPEAT_OP)) {
         vector<string> str_group = split_str(line);
         if (str_group.size() != 4) {
-	  clear();
+          clear();
           cerr << "Error: `.repeat` must follow the format: `.define name times word`" << endl;
           exit(1);
         }
         string name = str_group[1];
         size_t counts = *str_group[2].c_str() - 40;
-        Macro* new_macro = new Macro(name);
+        Macro* new_macro = create(name);
         for (size_t i = 0; i < counts; i++) {
           tmp_buf += str_group[3];
         }
         new_macro->set_content(tmp_buf);
-	tmp_buf.clear();
+        tmp_buf.clear();
       }
       else if (line.starts_with(INCLUDE_OP)) {
-	vector<string> str_group = split_str(line);
-	if (str_group.size() < 2) {
-	  clear();
+        vector<string> str_group = split_str(line);
+        if (str_group.size() < 2) {
+          clear();
           cerr << "Error: `.repeat` must follow the format: `.define name times word`" << endl;
           exit(1);
-	}
-	load_file(str_group[1]);
+        }
+        load_file(str_group[1]);
       }
       else if (line.starts_with(IMPORT_OP)) {
-	vector<string> str_group = split_str(line);
-	if (str_group.size() < 2) {
-	  clear();
+        vector<string> str_group = split_str(line);
+        if (str_group.size() < 2) {
+          clear();
           cerr << "Error: `.repeat` must follow the format: `.define name times word`" << endl;
           exit(1);
-	}
-	load_macro(str_group[1]);
+        }
+        load_macro(str_group[1]);
       }
       else {
-	size_t start = 0;
+        size_t start = 0;
         string _name = need_replace(line);
-	size_t pos = line.find(_name);
-	while (!_name.empty()) {
-	  FILEBUF << line.substr(start, pos - start);
-	  FILEBUF << macros_table[_name]->content;
-	  start = pos + _name.size();
-	  _name = need_replace(line.substr(start));
-	  pos = line.find(_name);
-	}
-	if (start == 0) {
-	  FILEBUF << line << "\n";
-	} else {
-	  FILEBUF << line.substr(start) << "\n";
-	}
+        size_t pos = line.find(_name);
+        while (!_name.empty()) {
+          FILEBUF << line.substr(start, pos - start);
+          FILEBUF << macros_table[_name]->content;
+          start = pos + _name.size();
+          _name = need_replace(line.substr(start));
+          pos = line.find(_name);
+        }
+        if (start == 0) {
+          FILEBUF << line << "\n";
+        } else {
+          FILEBUF << line.substr(start) << "\n";
+        }
       }
     }
     if (!is_full) {
@@ -199,7 +206,7 @@ public:
           exit(1);
         }
         string name = split_str(line)[1];
-        new Macro(name);
+        create(name);
       }
       else if (line.starts_with(ENDM_OP)) {
         is_full = true;
@@ -212,53 +219,54 @@ public:
       else if (line.starts_with(DEFINE_OP)) {
         vector<string> str_group = split_str(line);
         if (str_group.size() < 2) {
-	  clear();
+          clear();
           cerr << "Error: `.define` must follow the format: `.define name [words]`. It accept a name at least." << endl;
           exit(1);
         }
         string name = str_group[1];
-        Macro* new_macro = new Macro(name);
-	if (str_group.size() > 2) {
-	  tmp_buf = join_str(vector<string>(str_group.begin()+2, str_group.end()));
-	  new_macro->set_content(tmp_buf);
-	} else {
-	  new_macro->set_content(string(""));
-	}
-	tmp_buf.clear();
+        Macro* new_macro = create(name);
+        if (str_group.size() > 2) {
+          tmp_buf = join_str(vector<string>(str_group.begin()+2, str_group.end()));
+          new_macro->set_content(tmp_buf);
+        } else {
+          new_macro->set_content(string(""));
+        }
+        tmp_buf.clear();
       }
       else if (line.starts_with(REPEAT_OP)) {
         vector<string> str_group = split_str(line);
         if (str_group.size() != 4) {
-	  clear();
+          clear();
           cerr << "Error: `.repeat` must follow the format: `.define name times word`" << endl;
           exit(1);
         }
         string name = str_group[1];
         size_t counts = *str_group[2].c_str() - 40;
-        Macro* new_macro = new Macro(name);
+        Macro* new_macro = create(name);
         for (size_t i = 0; i < counts; i++) {
           tmp_buf += str_group[3];
         }
         new_macro->set_content(tmp_buf);
-	tmp_buf.clear();
+        tmp_buf.clear();
       }
+      // BUG: .include/.import 只会在程序运行目录找文件而定义文件所在目录找
       else if (line.starts_with(INCLUDE_OP)) {
-	vector<string> str_group = split_str(line);
-	if (str_group.size() < 2) {
-	  clear();
+        vector<string> str_group = split_str(line);
+        if (str_group.size() < 2) {
+          clear();
           cerr << "Error: `.repeat` must follow the format: `.define name times word`" << endl;
           exit(1);
-	}
-	load_file(str_group[1]);
+        }
+        load_file(str_group[1]);
       }
       else if (line.starts_with(IMPORT_OP)) {
-	vector<string> str_group = split_str(line);
-	if (str_group.size() < 2) {
-	  clear();
+        vector<string> str_group = split_str(line);
+        if (str_group.size() < 2) {
+          clear();
           cerr << "Error: `.repeat` must follow the format: `.define name times word`" << endl;
           exit(1);
-	}
-	load_macro(str_group[1]);
+        }
+        load_macro(str_group[1]);
       }
       else {}
     }
@@ -272,7 +280,7 @@ public:
   static void print() {
     cout << FILEBUF.str();
   }
-  
+
   static void print_to_file(string file_name) {
     ofstream file(file_name);
     if (!file) {
@@ -282,7 +290,7 @@ public:
     }
     file << FILEBUF.str();
   }
-  
+
   static void clear() {
     for (size_t i = 0; i < macros.size(); i++) {
       delete macros[i];
@@ -320,24 +328,24 @@ void command_line(int args, char* argv[]) {
     }
     else if (argvar == "-f") {
       if (string(argv[i+1]) == "0") {
-	MACRO_OP  = ".macro";
-	ENDM_OP   = ".endm";
-	DEFINE_OP = ".define";
-	REPEAT_OP = ".repeat";
-	INCLUDE_OP = ".include";
-	IMPORT_OP = ".import";
+        MACRO_OP  = ".macro";
+        ENDM_OP   = ".endm";
+        DEFINE_OP = ".define";
+        REPEAT_OP = ".repeat";
+        INCLUDE_OP = ".include";
+        IMPORT_OP = ".import";
       }
       else if (string(argv[i+1]) == "1") {
-	MACRO_OP  = "#macro";
+        MACRO_OP  = "#macro";
         ENDM_OP   = "#endm";
         DEFINE_OP = "#define";
         REPEAT_OP = "#repeat";
-	INCLUDE_OP = "#include";
-	IMPORT_OP = "#import";
+        INCLUDE_OP = "#include";
+        IMPORT_OP = "#import";
       }
       else {
-	cerr << "Error: unkownflag. `-f` only accept 0 or 1." << endl;
-	exit(1);
+        cerr << "Error: unkownflag. `-f` only accept 0 or 1." << endl;
+        exit(1);
       }
       i++;
     }
