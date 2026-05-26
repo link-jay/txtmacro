@@ -4,12 +4,13 @@
 #include <vector>
 #include <unordered_map>
 #include <sstream>
+
 using namespace std;
+
+stringstream FILEBUF;
 
 bool PRINT_TO_FILE = false;
 string TARGET_FILE;
-
-stringstream FILEBUF;
 
 vector<string> split_str(string str) {
   vector<string> strs;
@@ -37,13 +38,25 @@ static string MACRO_OP  = ".macro";
 static string ENDM_OP   = ".endm";
 static string DEFINE_OP = ".define";
 static string REPEAT_OP = ".repeat";
+static string INCLUDE_OP = ".include";
+static string IMPORT_OP = ".import";
 
 class Macro {
 private:
   static vector<Macro*> macros;
   static unordered_map<string, Macro*> macros_table;
   string name;
+  string define_file;
   string content;
+
+  static Macro* create(string name, string path) {
+    if (macros_table.count(name) == 0) {
+      return new Macro(name, path);
+    } else {
+      macros_table[name]->define_file = path;
+      return macros_table[name];
+    }
+  }
 
   void Register() {
     macros.push_back(this);
@@ -64,12 +77,13 @@ private:
   }
 
 public:
-  Macro(string m_name): name(m_name) {Register();}
+  Macro(string m_name, string path): name(m_name), define_file(path) {Register();}
 
-  static void load_file(string path) {
+  static void load_file(string path, bool only_parse) {
     ifstream file(path);
     if (!file) {
-      std::cerr << "Error: can not open " << path << "." << std::endl;
+      clear();
+      std::cerr << "Error: " << path <<" can not open " << path << "." << std::endl;
       exit(1);
     }
     stringstream filebuf;
@@ -86,7 +100,7 @@ public:
           exit(1);
         }
         string name = split_str(line)[1];
-        new Macro(name);
+        create(name, path);
       }
       else if (line.starts_with(ENDM_OP)) {
         is_full = true;
@@ -99,39 +113,57 @@ public:
       else if (line.starts_with(DEFINE_OP)) {
         vector<string> str_group = split_str(line);
         if (str_group.size() < 2) {
-	  clear();
-          cerr << "Error: `.define` must follow the format: `.define name [words]`. It accept a name at least." << endl;
+          clear();
+          cerr << "Error: in " << path << ": `.define` must follow the format: `.define name [words]`. It accept a name at least." << endl;
           exit(1);
         }
         string name = str_group[1];
-        Macro* new_macro = new Macro(name);
-	if (str_group.size() > 2) {
-	  tmp_buf = join_str(vector<string>(str_group.begin()+2, str_group.end()));
-	  new_macro->set_content(tmp_buf);
-	} else {
-	  new_macro->set_content(string(""));
-	}
-	tmp_buf.clear();
+        Macro* new_macro = create(name, path);
+        if (str_group.size() > 2) {
+          tmp_buf = join_str(vector<string>(str_group.begin()+2, str_group.end()));
+          new_macro->set_content(tmp_buf);
+        } else {
+          new_macro->set_content(string(""));
+        }
+        tmp_buf.clear();
       }
       else if (line.starts_with(REPEAT_OP)) {
         vector<string> str_group = split_str(line);
         if (str_group.size() != 4) {
-	  clear();
-          cerr << "Error: `.repeat` must follow the format: `.define name times word`" << endl;
+          clear();
+          cerr << "Error: in " << path << ": `.repeat` must follow the format: `.define name times word`" << endl;
           exit(1);
         }
         string name = str_group[1];
         size_t counts = *str_group[2].c_str() - 40;
-        Macro* new_macro = new Macro(name);
+        Macro* new_macro = create(name, path);
         for (size_t i = 0; i < counts; i++) {
           tmp_buf += str_group[3];
         }
         new_macro->set_content(tmp_buf);
-	tmp_buf.clear();
+        tmp_buf.clear();
       }
-      else {
+      else if (line.starts_with(INCLUDE_OP)) {
+        vector<string> str_group = split_str(line);
+        if (str_group.size() < 2) {
+          clear();
+          cerr << "Error: in " << path << ": `.repeat` must follow the format: `.define name times word`" << endl;
+          exit(1);
+        }
+        load_file(str_group[1], false);
+      }
+      else if (line.starts_with(IMPORT_OP)) {
+        vector<string> str_group = split_str(line);
+        if (str_group.size() < 2) {
+          clear();
+          cerr << "Error: in " << path << "`.repeat` must follow the format: `.define name times word`" << endl;
+          exit(1);
+        }
+        load_file(str_group[1], true);
+      }
+      else if (!only_parse) {
 	size_t start = 0;
-        string _name = need_replace(line);
+	string _name = need_replace(line);
 	size_t pos = line.find(_name);
 	while (!_name.empty()) {
 	  FILEBUF << line.substr(start, pos - start);
@@ -147,9 +179,10 @@ public:
 	}
       }
     }
+    
     if (!is_full) {
       clear();
-      cerr << "Error: `.macro` have not close." << endl;
+      cerr << "Error: in " << path << ": `.macro` have not close." << endl;
       exit(1);
     }
   }
@@ -157,7 +190,7 @@ public:
   static void print() {
     cout << FILEBUF.str();
   }
-  
+
   static void print_to_file(string file_name) {
     ofstream file(file_name);
     if (!file) {
@@ -167,7 +200,7 @@ public:
     }
     file << FILEBUF.str();
   }
-  
+
   static void clear() {
     for (size_t i = 0; i < macros.size(); i++) {
       delete macros[i];
@@ -186,12 +219,12 @@ public:
 vector<Macro*> Macro::macros;
 unordered_map<string, Macro*> Macro::macros_table;
 
-// TODO: 更严谨的参数检查
 void command_line(int args, char* argv[]) {
   if (args < 2) {
     cerr << "Error: Must accept a file name" << endl;
     exit(1);
   }
+  bool have_load = false;
   for (int i = 1; i < args; i++) {
     string argvar = string(argv[i]);
     if (argvar == "-i") {
@@ -199,35 +232,53 @@ void command_line(int args, char* argv[]) {
       TARGET_FILE = argv[args-1];
     }
     else if (argvar == "-o") {
+      if (i+1 >= args) {
+	cerr << "Error: `-o` must accept a file name" << endl;
+	exit(1);
+      }
       PRINT_TO_FILE = true;
       TARGET_FILE = argv[i+1];
       i++;
     }
     else if (argvar == "-f") {
+      if (i+1 >= args) {
+	cerr << "Error: `-f` must accept a file name" << endl;
+	exit(1);
+      }
       if (string(argv[i+1]) == "0") {
-	MACRO_OP  = ".macro";
-	ENDM_OP   = ".endm";
-	DEFINE_OP = ".define";
-	REPEAT_OP = ".repeat";
+        MACRO_OP  = ".macro";
+        ENDM_OP   = ".endm";
+        DEFINE_OP = ".define";
+        REPEAT_OP = ".repeat";
+        INCLUDE_OP = ".include";
+        IMPORT_OP = ".import";
       }
       else if (string(argv[i+1]) == "1") {
-	MACRO_OP  = "#macro";
+        MACRO_OP  = "#macro";
         ENDM_OP   = "#endm";
         DEFINE_OP = "#define";
         REPEAT_OP = "#repeat";
+        INCLUDE_OP = "#include";
+        IMPORT_OP = "#import";
       }
       else {
-	cerr << "Error: unkownflag. `-f` only accept 0 or 1." << endl;
-	exit(1);
+        cerr << "Error: unkownflag. `-f` only accept 0 or 1." << endl;
+        exit(1);
       }
       i++;
     }
     else if (argvar == "--flag") {
+      if (i+1 >= args) {
+	cerr << "Error: `--flag` must accept a file name" << endl;
+	exit(1);
+      }
       string prefix = argv[i+1];
       MACRO_OP  = prefix + "macro";
       ENDM_OP   = prefix + "endm";
       DEFINE_OP = prefix + "define";
       REPEAT_OP = prefix + "repeat";
+      INCLUDE_OP = prefix + "include";
+      IMPORT_OP = prefix + "import";
       i++;
     }
     else if (argvar == "--help") {
@@ -239,12 +290,19 @@ void command_line(int args, char* argv[]) {
       cout << "\t--help\t- print this message." << endl;
       exit(0);
     }
+    else {
+      Macro::load_file(argvar, false);
+      have_load = true;
+    }
+  }
+  if (!have_load) {
+    cerr << "Error: Must accept a file name" << endl;
+    exit(1);
   }
 }
 
 int main(int args, char* argv[]) {
   command_line(args, argv);
-  Macro::load_file(argv[args-1]);
   // Macro::dump();
   if (PRINT_TO_FILE) {
     Macro::print_to_file(TARGET_FILE);
