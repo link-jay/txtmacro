@@ -1,4 +1,4 @@
-// TODO: 抽象简化逻辑，详细报错位置
+// TODO: 抽象简化逻辑
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -82,7 +82,7 @@ public:
     ifstream file(path);
     if (!file) {
       clear();
-      std::cerr << "Error: can not open " << path << "." << std::endl;
+      std::cerr << "Error: " << path <<" can not open " << path << "." << std::endl;
       exit(1);
     }
     stringstream filebuf;
@@ -113,7 +113,7 @@ public:
         vector<string> str_group = split_str(line);
         if (str_group.size() < 2) {
           clear();
-          cerr << "Error: `.define` must follow the format: `.define name [words]`. It accept a name at least." << endl;
+          cerr << "Error: in " << path << ": `.define` must follow the format: `.define name [words]`. It accept a name at least." << endl;
           exit(1);
         }
         string name = str_group[1];
@@ -130,7 +130,7 @@ public:
         vector<string> str_group = split_str(line);
         if (str_group.size() != 4) {
           clear();
-          cerr << "Error: `.repeat` must follow the format: `.define name times word`" << endl;
+          cerr << "Error: in " << path << ": `.repeat` must follow the format: `.define name times word`" << endl;
           exit(1);
         }
         string name = str_group[1];
@@ -146,7 +146,7 @@ public:
         vector<string> str_group = split_str(line);
         if (str_group.size() < 2) {
           clear();
-          cerr << "Error: `.repeat` must follow the format: `.define name times word`" << endl;
+          cerr << "Error: in " << path << ": `.repeat` must follow the format: `.define name times word`" << endl;
           exit(1);
         }
         load_file(str_group[1]);
@@ -180,7 +180,7 @@ public:
     }
     if (!is_full) {
       clear();
-      cerr << "Error: " << path << "'s `.macro` have not close." << endl;
+      cerr << "Error: in " << path << ": `.macro` have not close." << endl;
       exit(1);
     }
   }
@@ -202,7 +202,7 @@ public:
       if (line.starts_with(MACRO_OP)) {
         is_full = false;
         if (split_str(line).size() != 2) {
-          cerr << "Error: `.macro` must set a name." << endl;
+          cerr << "Error: in " << path << ": `.macro` must set a name." << endl;
           exit(1);
         }
         string name = split_str(line)[1];
@@ -220,7 +220,7 @@ public:
         vector<string> str_group = split_str(line);
         if (str_group.size() < 2) {
           clear();
-          cerr << "Error: `.define` must follow the format: `.define name [words]`. It accept a name at least." << endl;
+          cerr << "Error: in " << path << ": `.define` must follow the format: `.define name [words]`. It accept a name at least." << endl;
           exit(1);
         }
         string name = str_group[1];
@@ -237,7 +237,7 @@ public:
         vector<string> str_group = split_str(line);
         if (str_group.size() != 4) {
           clear();
-          cerr << "Error: `.repeat` must follow the format: `.define name times word`" << endl;
+          cerr << "Error: in " << path << ": `.repeat` must follow the format: `.define name times word`" << endl;
           exit(1);
         }
         string name = str_group[1];
@@ -254,7 +254,7 @@ public:
         vector<string> str_group = split_str(line);
         if (str_group.size() < 2) {
           clear();
-          cerr << "Error: `.repeat` must follow the format: `.define name times word`" << endl;
+          cerr << "Error: in " << path << ": `.repeat` must follow the format: `.define name times word`" << endl;
           exit(1);
         }
         load_file(str_group[1]);
@@ -263,7 +263,7 @@ public:
         vector<string> str_group = split_str(line);
         if (str_group.size() < 2) {
           clear();
-          cerr << "Error: `.repeat` must follow the format: `.define name times word`" << endl;
+          cerr << "Error: in " << path << ": `.repeat` must follow the format: `.define name times word`" << endl;
           exit(1);
         }
         load_macro(str_group[1]);
@@ -272,7 +272,7 @@ public:
     }
     if (!is_full) {
       clear();
-      cerr << "Error: " << path << "'s `.macro` have not close." << endl;
+      cerr << "Error: in " << path << ": `.macro` have not close." << endl;
       exit(1);
     }
   }
