@@ -29,3 +29,7 @@ The `.define` keyword is used for single-line definitions. It requires a name.
 .repeat name times word
 ```
 The `.repeat` keyword repeats `word` `times` times.  
+```
+.include name
+```
+The `.include` keyword will parse and paste the `name` file's content.  

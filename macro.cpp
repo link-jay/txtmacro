@@ -1,3 +1,4 @@
+// TODO: .import
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -6,10 +7,10 @@
 #include <sstream>
 using namespace std;
 
+stringstream FILEBUF;
+
 bool PRINT_TO_FILE = false;
 string TARGET_FILE;
-
-stringstream FILEBUF;
 
 vector<string> split_str(string str) {
   vector<string> strs;
@@ -37,6 +38,7 @@ static string MACRO_OP  = ".macro";
 static string ENDM_OP   = ".endm";
 static string DEFINE_OP = ".define";
 static string REPEAT_OP = ".repeat";
+static string INCLUDE_OP = ".include";
 
 class Macro {
 private:
@@ -45,6 +47,7 @@ private:
   string name;
   string content;
 
+  // TODO: 增加重定义检验
   void Register() {
     macros.push_back(this);
     macros_table[name] = this;
@@ -69,6 +72,7 @@ public:
   static void load_file(string path) {
     ifstream file(path);
     if (!file) {
+      clear();
       std::cerr << "Error: can not open " << path << "." << std::endl;
       exit(1);
     }
@@ -128,6 +132,15 @@ public:
         }
         new_macro->set_content(tmp_buf);
 	tmp_buf.clear();
+      }
+      else if (line.starts_with(INCLUDE_OP)) {
+	vector<string> str_group = split_str(line);
+	if (str_group.size() < 2) {
+	  clear();
+          cerr << "Error: `.repeat` must follow the format: `.define name times word`" << endl;
+          exit(1);
+	}
+	load_file(str_group[1]);
       }
       else {
 	size_t start = 0;
