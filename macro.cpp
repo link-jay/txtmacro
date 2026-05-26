@@ -46,12 +46,14 @@ private:
   static vector<Macro*> macros;
   static unordered_map<string, Macro*> macros_table;
   string name;
+  string define_file;
   string content;
 
-  static Macro* create(string name) {
+  static Macro* create(string name, string path) {
     if (macros_table.count(name) == 0) {
-      return new Macro(name);
+      return new Macro(name, path);
     } else {
+      macros_table[name]->define_file = path;
       return macros_table[name];
     }
   }
@@ -75,7 +77,7 @@ private:
   }
 
 public:
-  Macro(string m_name): name(m_name) {Register();}
+  Macro(string m_name, string path): name(m_name), define_file(path) {Register();}
 
   static void load_file(string path, bool only_parse) {
     ifstream file(path);
@@ -98,7 +100,7 @@ public:
           exit(1);
         }
         string name = split_str(line)[1];
-        create(name);
+        create(name, path);
       }
       else if (line.starts_with(ENDM_OP)) {
         is_full = true;
@@ -116,7 +118,7 @@ public:
           exit(1);
         }
         string name = str_group[1];
-        Macro* new_macro = create(name);
+        Macro* new_macro = create(name, path);
         if (str_group.size() > 2) {
           tmp_buf = join_str(vector<string>(str_group.begin()+2, str_group.end()));
           new_macro->set_content(tmp_buf);
@@ -134,7 +136,7 @@ public:
         }
         string name = str_group[1];
         size_t counts = *str_group[2].c_str() - 40;
-        Macro* new_macro = create(name);
+        Macro* new_macro = create(name, path);
         for (size_t i = 0; i < counts; i++) {
           tmp_buf += str_group[3];
         }
@@ -276,12 +278,14 @@ void command_line(int args, char* argv[]) {
       cout << "\t--help\t- print this message." << endl;
       exit(0);
     }
+    else {
+      Macro::load_file(argvar, false);
+    }
   }
 }
 
 int main(int args, char* argv[]) {
   command_line(args, argv);
-  Macro::load_file(argv[args-1], false);
   // Macro::dump();
   if (PRINT_TO_FILE) {
     Macro::print_to_file(TARGET_FILE);

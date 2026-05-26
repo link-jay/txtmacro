@@ -9,7 +9,7 @@ hello, world
 .endm
 hello
 ```
-Run `./txtmacro.out hello.txt`, and you will see `hello, world` in the terminal.  
+Run `./txtmacro.out hello.txt`, and you will see `hello, world` in the terminal. Note that `hello.txt` and all main source files must be in the current directory.  
 You can use `-i` to replace content in-place or `-o` to output to a specific file.  
 This is a free compiler. You can change the keyword style with `-f 0/1`. `0` stands for the `.` style (e.g., `.macro`), and `1` stands for the `#` style (e.g., `#macro`). If you are not satisfied with these, use `--flag` to customize the style you need.  
 You can also check information by using `--help`.  
