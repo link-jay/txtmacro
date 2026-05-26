@@ -156,7 +156,7 @@ public:
         vector<string> str_group = split_str(line);
         if (str_group.size() < 2) {
           clear();
-          cerr << "Error: `.repeat` must follow the format: `.define name times word`" << endl;
+          cerr << "Error: in " << path << "`.repeat` must follow the format: `.define name times word`" << endl;
           exit(1);
         }
         load_file(str_group[1], true);
@@ -219,12 +219,12 @@ public:
 vector<Macro*> Macro::macros;
 unordered_map<string, Macro*> Macro::macros_table;
 
-// TODO: 更严谨的参数检查
 void command_line(int args, char* argv[]) {
   if (args < 2) {
     cerr << "Error: Must accept a file name" << endl;
     exit(1);
   }
+  bool have_load = false;
   for (int i = 1; i < args; i++) {
     string argvar = string(argv[i]);
     if (argvar == "-i") {
@@ -232,11 +232,19 @@ void command_line(int args, char* argv[]) {
       TARGET_FILE = argv[args-1];
     }
     else if (argvar == "-o") {
+      if (i+1 >= args) {
+	cerr << "Error: `-o` must accept a file name" << endl;
+	exit(1);
+      }
       PRINT_TO_FILE = true;
       TARGET_FILE = argv[i+1];
       i++;
     }
     else if (argvar == "-f") {
+      if (i+1 >= args) {
+	cerr << "Error: `-f` must accept a file name" << endl;
+	exit(1);
+      }
       if (string(argv[i+1]) == "0") {
         MACRO_OP  = ".macro";
         ENDM_OP   = ".endm";
@@ -260,6 +268,10 @@ void command_line(int args, char* argv[]) {
       i++;
     }
     else if (argvar == "--flag") {
+      if (i+1 >= args) {
+	cerr << "Error: `--flag` must accept a file name" << endl;
+	exit(1);
+      }
       string prefix = argv[i+1];
       MACRO_OP  = prefix + "macro";
       ENDM_OP   = prefix + "endm";
@@ -280,7 +292,12 @@ void command_line(int args, char* argv[]) {
     }
     else {
       Macro::load_file(argvar, false);
+      have_load = true;
     }
+  }
+  if (!have_load) {
+    cerr << "Error: Must accept a file name" << endl;
+    exit(1);
   }
 }
 
