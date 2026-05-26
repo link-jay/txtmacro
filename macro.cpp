@@ -1,4 +1,3 @@
-// TODO: 抽象简化逻辑
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -78,7 +77,7 @@ private:
 public:
   Macro(string m_name): name(m_name) {Register();}
 
-  static void load_file(string path) {
+  static void load_file(string path, bool only_parse) {
     ifstream file(path);
     if (!file) {
       clear();
@@ -149,7 +148,7 @@ public:
           cerr << "Error: in " << path << ": `.repeat` must follow the format: `.define name times word`" << endl;
           exit(1);
         }
-        load_file(str_group[1]);
+        load_file(str_group[1], false);
       }
       else if (line.starts_with(IMPORT_OP)) {
         vector<string> str_group = split_str(line);
@@ -158,118 +157,27 @@ public:
           cerr << "Error: `.repeat` must follow the format: `.define name times word`" << endl;
           exit(1);
         }
-        load_macro(str_group[1]);
+        load_file(str_group[1], true);
       }
-      else {
-        size_t start = 0;
-        string _name = need_replace(line);
-        size_t pos = line.find(_name);
-        while (!_name.empty()) {
-          FILEBUF << line.substr(start, pos - start);
-          FILEBUF << macros_table[_name]->content;
-          start = pos + _name.size();
-          _name = need_replace(line.substr(start));
-          pos = line.find(_name);
-        }
-        if (start == 0) {
-          FILEBUF << line << "\n";
-        } else {
-          FILEBUF << line.substr(start) << "\n";
-        }
+      else if (!only_parse) {
+	size_t start = 0;
+	string _name = need_replace(line);
+	size_t pos = line.find(_name);
+	while (!_name.empty()) {
+	  FILEBUF << line.substr(start, pos - start);
+	  FILEBUF << macros_table[_name]->content;
+	  start = pos + _name.size();
+	  _name = need_replace(line.substr(start));
+	  pos = line.find(_name);
+	}
+	if (start == 0) {
+	  FILEBUF << line << "\n";
+	} else {
+	  FILEBUF << line.substr(start) << "\n";
+	}
       }
     }
-    if (!is_full) {
-      clear();
-      cerr << "Error: in " << path << ": `.macro` have not close." << endl;
-      exit(1);
-    }
-  }
-
-  static void load_macro(string path) {
-    ifstream file(path);
-    if (!file) {
-      clear();
-      std::cerr << "Error: can not open " << path << "." << std::endl;
-      exit(1);
-    }
-    stringstream filebuf;
-    filebuf << file.rdbuf();
-    file.close();
-    bool is_full = true;
-    string tmp_buf = "";
-    std::string line;
-    while (getline(filebuf, line)) {
-      if (line.starts_with(MACRO_OP)) {
-        is_full = false;
-        if (split_str(line).size() != 2) {
-          cerr << "Error: in " << path << ": `.macro` must set a name." << endl;
-          exit(1);
-        }
-        string name = split_str(line)[1];
-        create(name);
-      }
-      else if (line.starts_with(ENDM_OP)) {
-        is_full = true;
-        macros.back()->set_content(tmp_buf);
-        tmp_buf.clear();
-      }
-      else if (!is_full) {
-        tmp_buf += line + "\n";
-      }
-      else if (line.starts_with(DEFINE_OP)) {
-        vector<string> str_group = split_str(line);
-        if (str_group.size() < 2) {
-          clear();
-          cerr << "Error: in " << path << ": `.define` must follow the format: `.define name [words]`. It accept a name at least." << endl;
-          exit(1);
-        }
-        string name = str_group[1];
-        Macro* new_macro = create(name);
-        if (str_group.size() > 2) {
-          tmp_buf = join_str(vector<string>(str_group.begin()+2, str_group.end()));
-          new_macro->set_content(tmp_buf);
-        } else {
-          new_macro->set_content(string(""));
-        }
-        tmp_buf.clear();
-      }
-      else if (line.starts_with(REPEAT_OP)) {
-        vector<string> str_group = split_str(line);
-        if (str_group.size() != 4) {
-          clear();
-          cerr << "Error: in " << path << ": `.repeat` must follow the format: `.define name times word`" << endl;
-          exit(1);
-        }
-        string name = str_group[1];
-        size_t counts = *str_group[2].c_str() - 40;
-        Macro* new_macro = create(name);
-        for (size_t i = 0; i < counts; i++) {
-          tmp_buf += str_group[3];
-        }
-        new_macro->set_content(tmp_buf);
-        tmp_buf.clear();
-      }
-      // BUG: .include/.import 只会在程序运行目录找文件而定义文件所在目录找
-      else if (line.starts_with(INCLUDE_OP)) {
-        vector<string> str_group = split_str(line);
-        if (str_group.size() < 2) {
-          clear();
-          cerr << "Error: in " << path << ": `.repeat` must follow the format: `.define name times word`" << endl;
-          exit(1);
-        }
-        load_file(str_group[1]);
-      }
-      else if (line.starts_with(IMPORT_OP)) {
-        vector<string> str_group = split_str(line);
-        if (str_group.size() < 2) {
-          clear();
-          cerr << "Error: in " << path << ": `.repeat` must follow the format: `.define name times word`" << endl;
-          exit(1);
-        }
-        load_macro(str_group[1]);
-      }
-      else {}
-    }
+    
     if (!is_full) {
       clear();
       cerr << "Error: in " << path << ": `.macro` have not close." << endl;
@@ -373,7 +281,7 @@ void command_line(int args, char* argv[]) {
 
 int main(int args, char* argv[]) {
   command_line(args, argv);
-  Macro::load_file(argv[args-1]);
+  Macro::load_file(argv[args-1], false);
   // Macro::dump();
   if (PRINT_TO_FILE) {
     Macro::print_to_file(TARGET_FILE);
