@@ -1,0 +1,9 @@
+.macro foo
+.macro bar
+hello, world
+.endm
+===
+foo
+===
+bar
+===

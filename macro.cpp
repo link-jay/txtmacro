@@ -7,6 +7,8 @@
 
 using namespace std;
 
+vector<string> FILE_LIST;
+
 stringstream FILEBUF;
 
 bool PRINT_TO_FILE = false;
@@ -89,26 +91,26 @@ public:
     stringstream filebuf;
     filebuf << file.rdbuf();
     file.close();
-    bool is_full = true;
+    bool is_macro_closed = true;
     string tmp_buf = "";
     std::string line;
     while (getline(filebuf, line)) {
-      if (line.starts_with(MACRO_OP)) {
-        is_full = false;
+      if (line.starts_with(ENDM_OP)) {
+        is_macro_closed = true;
+        macros.back()->set_content(tmp_buf);
+        tmp_buf.clear();
+      }
+      else if (!is_macro_closed) {
+        tmp_buf += line + "\n";
+      }
+      else if (line.starts_with(MACRO_OP)) {
+        is_macro_closed = false;
         if (split_str(line).size() != 2) {
-          cerr << "Error: `.macro` must set a name." << endl;
+          cerr << "Error: in " << path << "`.macro` must set a name." << endl;
           exit(1);
         }
         string name = split_str(line)[1];
         create(name, path);
-      }
-      else if (line.starts_with(ENDM_OP)) {
-        is_full = true;
-        macros.back()->set_content(tmp_buf);
-        tmp_buf.clear();
-      }
-      else if (!is_full) {
-        tmp_buf += line + "\n";
       }
       else if (line.starts_with(DEFINE_OP)) {
         vector<string> str_group = split_str(line);
@@ -180,7 +182,7 @@ public:
       }
     }
     
-    if (!is_full) {
+    if (!is_macro_closed) {
       clear();
       cerr << "Error: in " << path << ": `.macro` have not close." << endl;
       exit(1);
@@ -195,7 +197,7 @@ public:
     ofstream file(file_name);
     if (!file) {
       clear();
-      cerr << "Can not output to " << file_name << "." << endl;
+      cerr << "Error: Can not output to " << file_name << "." << endl;
       exit(1);
     }
     file << FILEBUF.str();
@@ -229,7 +231,7 @@ void command_line(int args, char* argv[]) {
     string argvar = string(argv[i]);
     if (argvar == "-i") {
       PRINT_TO_FILE = true;
-      TARGET_FILE = argv[args-1];
+      TARGET_FILE = FILE_LIST.back();
     }
     else if (argvar == "-o") {
       if (i+1 >= args) {
@@ -292,6 +294,7 @@ void command_line(int args, char* argv[]) {
     }
     else {
       Macro::load_file(argvar, false);
+      FILE_LIST.push_back(argvar);
       have_load = true;
     }
   }
