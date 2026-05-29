@@ -1,6 +1,9 @@
 # txtmacro
 A text macro compiler.  
 
+## Requirements
+- C++ compiler
+
 ## Document
 Compile txtmacro with `c++ macro.cpp -o txtmacro.out`, then create a `hello.txt` file and type the content below:
 ``` hello.txt
